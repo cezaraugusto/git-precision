@@ -1,0 +1,19 @@
+name: git-precision
+description: Download any file, folder, or repository from GitHub into your workflow
+author: Cezar Augusto
+branding:
+  icon: 'download'
+  color: 'blue'
+inputs:
+  url:
+    description: 'GitHub URL (file/folder/repo)'
+    required: true
+  output:
+    description: 'Destination folder'
+    required: false
+  text:
+    description: 'Optional custom log message'
+    required: false
+runs:
+  using: 'node20'
+  main: 'dist/index.cjs'
