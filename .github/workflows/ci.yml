@@ -1,0 +1,34 @@
+name: 🛠
+
+permissions:
+  contents: read
+
+on:
+  push:
+    branches:
+      - main
+      - 'v[0-9]+.x'
+  pull_request:
+    branches:
+      - main
+      - 'v[0-9]+.x'
+
+jobs:
+  build:
+    name: Build git-precision
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/setup
+        with:
+          node-version: '22'
+
+      - name: Build the action
+        run: pnpm run build
+
+      - name: Use local git-precision Action
+        uses: ./
+        with:
+          url: https://github.com/cezaraugusto/extension.js/tree/main/templates/react
+          output: test-template
