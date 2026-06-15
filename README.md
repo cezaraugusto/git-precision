@@ -53,6 +53,21 @@ Built for CI pipelines and developers who need **just the right part** of a GitH
 | `output` | no       | Exact destination path (relative to the workspace) for the file or folder |
 | `text`   | no       | Optional log message (replaces default CLI output)  |
 
+## Outputs
+
+| Name            | Description                                                       |
+| --------------- | ---------------------------------------------------------------- |
+| `resolved-path` | Absolute path where the downloaded file or folder was placed     |
+
+```yaml
+- uses: cezaraugusto/git-precision@v1
+  id: fetch
+  with:
+    url: https://github.com/username/repository/tree/main/templates/react
+    output: ./templates/react
+- run: echo "Downloaded to ${{ steps.fetch.outputs.resolved-path }}"
+```
+
 ## Output Behavior
 
 The `output` input determines the **exact path** where the downloaded file or folder will be placed. No additional nesting is added.
@@ -65,7 +80,12 @@ The `output` input determines the **exact path** where the downloaded file or fo
 
 This design gives you full control of where each resource goes, which is especially useful in CI pipelines.
 
-> **Note:** If the `output` path already exists, it will be overwritten.
+> **Note:** If the `output` path already exists, it will be overwritten. The `output` must resolve to a path **inside** the workspace , values that resolve to the workspace root (`.`) or escape it (`../`) are rejected to avoid destructive deletes.
+
+## Limitations
+
+- **Public repositories only.** Content is fetched over unauthenticated HTTPS, so private or internal repositories are not supported.
+- **Git is required** on the runner (present by default on GitHub-hosted runners).
 
 ## License
 

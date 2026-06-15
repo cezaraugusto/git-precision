@@ -15,7 +15,7 @@ on:
 
 jobs:
   build:
-    name: Build git-precision
+    name: Build & test git-precision
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
@@ -24,11 +24,34 @@ jobs:
         with:
           node-version: '22'
 
+      - name: Lint
+        run: pnpm run lint
+
+      - name: Unit tests
+        run: pnpm run test
+
       - name: Build the action
         run: pnpm run build
 
-      - name: Use local git-precision Action
+      - name: Ensure dist is up to date
+        run: |
+          if ! git diff --exit-code -- dist; then
+            echo "::error::dist/ is out of date. Run 'pnpm build' and commit the result."
+            exit 1
+          fi
+
+      # Smoke test the built action against a stable public path, then assert
+      # the content lands at the exact output path with no extra nesting.
+      - name: Use local git-precision Action (folder)
+        id: fetch
         uses: ./
         with:
-          url: https://github.com/cezaraugusto/extension.js/tree/main/templates/react
-          output: test-template
+          url: https://github.com/cezaraugusto/go-git-it/tree/main/src/utils
+          output: smoke/utils
+
+      - name: Assert exact placement
+        run: |
+          test -f smoke/utils/url-parser.ts || { echo "expected file missing"; exit 1; }
+          if [ -e smoke/utils/utils ]; then echo "content was double-nested"; exit 1; fi
+          echo "resolved-path = ${{ steps.fetch.outputs.resolved-path }}"
+          test -n "${{ steps.fetch.outputs.resolved-path }}" || { echo "resolved-path output not set"; exit 1; }
