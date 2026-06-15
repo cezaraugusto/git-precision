@@ -50,7 +50,7 @@ Built for CI pipelines and developers who need **just the right part** of a GitH
 | Name     | Required | Description                                         |
 | -------- | -------- | --------------------------------------------------- |
 | `url`    | yes      | Full GitHub URL (file, folder, or repo) to download |
-| `output` | no       | Destination path relative to the workspace          |
+| `output` | no       | Exact destination path (relative to the workspace) for the file or folder |
 | `text`   | no       | Optional log message (replaces default CLI output)  |
 
 ## Output Behavior

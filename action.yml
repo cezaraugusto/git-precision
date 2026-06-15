@@ -14,6 +14,9 @@ inputs:
   text:
     description: 'Optional custom log message'
     required: false
+outputs:
+  resolved-path:
+    description: 'Absolute path where the downloaded file or folder was placed'
 runs:
   using: 'node20'
   main: 'dist/index.cjs'
