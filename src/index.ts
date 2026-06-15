@@ -4,40 +4,66 @@ import * as path from 'path';
 import * as core from '@actions/core';
 import goGitIt from 'go-git-it';
 
-async function run() {
-  let tempDir: string | undefined;
+export interface FetchOptions {
+  url: string;
+  output?: string;
+  text?: string;
+}
 
+/**
+ * Move a file or directory, falling back to copy + remove when the source and
+ * destination live on different filesystems (rename() raises EXDEV).
+ */
+function moveSync(source: string, destination: string): void {
   try {
-    const url = core.getInput('url', { required: true });
-    const output = core.getInput('output');
-    const text = core.getInput('text') || undefined;
-
-    if (!output) {
-      // No explicit destination: download into the workspace using
-      // go-git-it's default naming (the basename of the URL target).
-      await goGitIt(url, undefined, text);
-      const resolved = process.cwd();
-      core.info(`✅ Fetched: ${url} → ${resolved}`);
-      core.setOutput('resolved-path', resolved);
+    fs.renameSync(source, destination);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'EXDEV') {
+      fs.cpSync(source, destination, { recursive: true });
+      fs.rmSync(source, { recursive: true, force: true });
       return;
     }
+    throw error;
+  }
+}
 
-    const cwd = process.cwd();
-    const destination = path.resolve(cwd, output);
+/**
+ * Download `url` and place it at the exact `output` path.
+ *
+ * `go-git-it` always writes content as `<dir>/<basename-of-target>`. To honor
+ * `output` verbatim (for files and folders alike) we download into a temp dir
+ * and move the single resulting entry to `output`, instead of letting the
+ * basename get appended to a caller-provided directory.
+ *
+ * Returns the absolute path where the content was placed.
+ */
+export async function fetchToOutput(
+  { url, output, text }: FetchOptions,
+  cwd: string = process.cwd(),
+): Promise<string> {
+  if (!output) {
+    // No explicit destination: download into the workspace using go-git-it's
+    // default naming (the basename of the URL target). Passing `cwd` is
+    // equivalent to go-git-it's own default (process.cwd()).
+    await goGitIt(url, cwd, text);
+    return cwd;
+  }
 
-    // Guard against destructive removals: refuse to treat the workspace root
-    // or any of its parents as the output, since we rm the destination before
-    // writing to it.
-    if (`${cwd}${path.sep}`.startsWith(`${destination}${path.sep}`)) {
-      throw new Error(
-        `Refusing to use output "${output}": it resolves to the workspace root or a parent directory, which would be deleted before download.`,
-      );
-    }
+  const destination = path.resolve(cwd, output);
 
-    // Download into a temp dir, then move the single resulting entry to the
-    // exact destination. This decouples placement from go-git-it's basename
-    // naming, so the output path is honored verbatim for files and folders.
-    tempDir = fs.mkdtempSync(path.join(cwd, '.git-precision-'));
+  // Guard against destructive or escaping writes: the destination is removed
+  // before download, so it must be strictly inside the workspace. This rejects
+  // the workspace root itself ("."), parent directories, and "../"-style
+  // path traversal alike.
+  const relative = path.relative(cwd, destination);
+  if (relative === '' || relative.startsWith('..') || path.isAbsolute(relative)) {
+    throw new Error(
+      `Refusing to use output "${output}": it must resolve to a path inside the workspace (got "${destination}").`,
+    );
+  }
+
+  const tempDir = fs.mkdtempSync(path.join(cwd, '.git-precision-'));
+  try {
     await goGitIt(url, tempDir, text);
 
     const entries = fs.readdirSync(tempDir);
@@ -49,17 +75,30 @@ async function run() {
 
     fs.rmSync(destination, { recursive: true, force: true });
     fs.mkdirSync(path.dirname(destination), { recursive: true });
-    fs.renameSync(path.join(tempDir, entries[0]), destination);
+    moveSync(path.join(tempDir, entries[0]), destination);
 
-    core.info(`✅ Fetched: ${url} → ${output}`);
-    core.setOutput('resolved-path', destination);
-  } catch (error) {
-    core.setFailed((error as Error).message);
+    return destination;
   } finally {
-    if (tempDir) {
-      fs.rmSync(tempDir, { recursive: true, force: true });
-    }
+    fs.rmSync(tempDir, { recursive: true, force: true });
   }
 }
 
-run();
+export async function run(): Promise<void> {
+  try {
+    const url = core.getInput('url', { required: true });
+    const output = core.getInput('output');
+    const text = core.getInput('text') || undefined;
+
+    const resolved = await fetchToOutput({ url, output, text });
+
+    core.info(`✅ Fetched: ${url} → ${output || resolved}`);
+    core.setOutput('resolved-path', resolved);
+  } catch (error) {
+    core.setFailed((error as Error).message);
+  }
+}
+
+// Execute when invoked as the action entrypoint, but not when imported by tests.
+if (process.env.NODE_ENV !== 'test') {
+  run();
+}
