@@ -1,7 +1,7 @@
 {
   "packageManager": "pnpm@9.9.0",
   "name": "git-precision",
-  "description": "Target and extract any file, folder, or full repository from GitHub — directly into your workflow.",
+  "description": "Target and extract any file, folder, or full repository from GitHub, directly into your workflow.",
   "version": "1.0.0",
   "license": "MIT",
   "type": "module",
