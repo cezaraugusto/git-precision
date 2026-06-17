@@ -80,7 +80,7 @@ The `output` input determines the **exact path** where the downloaded file or fo
 
 This design gives you full control of where each resource goes, which is especially useful in CI pipelines.
 
-> **Note:** If the `output` path already exists, it will be overwritten. The `output` must resolve to a path **inside** the workspace , values that resolve to the workspace root (`.`) or escape it (`../`) are rejected to avoid destructive deletes.
+> **Note:** If the `output` path already exists, it will be overwritten. The `output` must resolve to a path **inside** the workspace; values that resolve to the workspace root (`.`) or escape it (`../`) are rejected to avoid destructive deletes.
 
 ## Limitations
 
