@@ -1,11 +1,11 @@
-[version-image]: https://img.shields.io/badge/version-1.0.0-31C254
-[version-url]: https://github.com/cezaraugusto/git-precision/releases/tag/v1.0.0
+[version-image]: https://img.shields.io/github/v/release/cezaraugusto/git-precision.svg?color=0971fe
+[version-url]: https://github.com/cezaraugusto/git-precision/releases
 [action-image]: https://github.com/cezaraugusto/git-precision/actions/workflows/ci.yml/badge.svg?branch=main
 [action-url]: https://github.com/cezaraugusto/git-precision/actions
 
-# git-precision 🎯 [![version][version-image]][version-url] [![CI][action-image]][action-url]
+> Target and extract any file, folder, or full repository from GitHub, directly into your workflow.
 
-> Download any file, folder, or repository from GitHub into your workflow.
+# git-precision [![Version][version-image]][version-url] [![workflow][action-image]][action-url]
 
 Built for CI pipelines and developers who need **just the right part** of a GitHub repository, without the overhead of cloning the entire thing. With `git-precision` you can:
 
@@ -89,4 +89,4 @@ This design gives you full control of where each resource goes, which is especia
 
 ## License
 
-MIT (c) Cezar Augusto
+MIT (c) Cezar Augusto.

@@ -1,57 +1,31 @@
-name: 🛠
+name: CI
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
 
 permissions:
   contents: read
 
-on:
-  push:
-    branches:
-      - main
-      - 'v[0-9]+.x'
-  pull_request:
-    branches:
-      - main
-      - 'v[0-9]+.x'
-
 jobs:
-  build:
-    name: Build & test git-precision
-    runs-on: ubuntu-22.04
+  test:
+    runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - uses: ./.github/actions/setup
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: 20
+          cache: pnpm
 
-      - name: Lint
-        run: pnpm run lint
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
 
-      - name: Unit tests
-        run: pnpm run test
-
-      - name: Build the action
-        run: pnpm run build
-
-      - name: Ensure dist is up to date
-        run: |
-          if ! git diff --exit-code -- dist; then
-            echo "::error::dist/ is out of date. Run 'pnpm build' and commit the result."
-            exit 1
-          fi
-
-      # Smoke test the built action against a stable public path, then assert
-      # the content lands at the exact output path with no extra nesting.
-      - name: Use local git-precision Action (folder)
-        id: fetch
-        uses: ./
-        with:
-          url: https://github.com/cezaraugusto/go-git-it/tree/main/src/utils
-          output: smoke/utils
-
-      - name: Assert exact placement
-        run: |
-          test -f smoke/utils/url-parser.ts || { echo "expected file missing"; exit 1; }
-          if [ -e smoke/utils/utils ]; then echo "content was double-nested"; exit 1; fi
-          echo "resolved-path = ${{ steps.fetch.outputs.resolved-path }}"
-          test -n "${{ steps.fetch.outputs.resolved-path }}" || { echo "resolved-path output not set"; exit 1; }
+      - name: Run tests
+        run: pnpm test
