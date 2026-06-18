@@ -25,7 +25,36 @@ jobs:
           cache: pnpm
 
       - name: Install dependencies
-        run: pnpm install --no-frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
-      - name: Run tests
+      - name: Lint
+        run: pnpm lint
+
+      - name: Test
         run: pnpm test
+
+      - name: Build
+        run: pnpm build
+
+      - name: Ensure dist is up to date
+        run: |
+          if ! git diff --exit-code -- dist; then
+            echo "::error::dist/ is out of date. Run 'pnpm build' and commit the result."
+            exit 1
+          fi
+
+      # Run the freshly built action against a stable public path, then assert
+      # the content lands at the exact output path with no extra nesting.
+      - name: Smoke test the built action
+        id: fetch
+        uses: ./
+        with:
+          url: https://github.com/cezaraugusto/go-git-it/tree/main/src/utils
+          output: smoke/utils
+
+      - name: Assert exact placement
+        run: |
+          test -f smoke/utils/url-parser.ts || { echo "expected file missing"; exit 1; }
+          if [ -e smoke/utils/utils ]; then echo "content was double-nested"; exit 1; fi
+          test -n "${{ steps.fetch.outputs.resolved-path }}" || { echo "resolved-path not set"; exit 1; }
+          echo "resolved-path = ${{ steps.fetch.outputs.resolved-path }}"
