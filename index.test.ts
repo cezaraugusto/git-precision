@@ -1,3 +1,4 @@
+/* eslint-disable max-lines-per-function -- spec blocks group many cases */
 import * as fs from 'fs'
 import * as os from 'os'
 import * as path from 'path'
@@ -13,13 +14,15 @@ vi.mock('go-git-it', () => ({default: vi.fn()}))
 
 const mockedGoGitIt = vi.mocked(goGitIt)
 
+let workspace: string
+
 /**
  * Configure the go-git-it mock to materialize a file or folder, named after the
  * basename of the URL target, inside the directory it is handed , exactly what
  * the real implementation does.
  */
 function stubDownload (kind: 'file' | 'folder', files: Record<string, string>) {
-  mockedGoGitIt.mockImplementation(async (url: string, outputDir?: string) => {
+  mockedGoGitIt.mockImplementation((url: string, outputDir?: string) => {
     // Never fall back to the real process.cwd(): tests always supply a dir.
     const dir = outputDir ?? workspace
     const base = path.basename(new URL(url).pathname)
@@ -34,10 +37,10 @@ function stubDownload (kind: 'file' | 'folder', files: Record<string, string>) {
         fs.writeFileSync(path.join(folder, name), content)
       }
     }
+
+    return Promise.resolve()
   })
 }
-
-let workspace: string
 
 beforeEach(() => {
   workspace = fs.mkdtempSync(path.join(os.tmpdir(), 'gp-spec-'))
@@ -109,7 +112,11 @@ describe('fetchToOutput', () => {
       workspace
     )
 
-    expect(mockedGoGitIt).toHaveBeenCalledWith(expect.any(String), expect.any(String), 'hello')
+    expect(mockedGoGitIt).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.any(String),
+      'hello'
+    )
   })
 
   it('refuses an output that resolves to the workspace root', async () => {
@@ -127,15 +134,20 @@ describe('fetchToOutput', () => {
   })
 
   it('throws when the download yields more than one top-level entry', async () => {
-    mockedGoGitIt.mockImplementation(async (_url: string, outputDir?: string) => {
+    mockedGoGitIt.mockImplementation((_url: string, outputDir?: string) => {
       const dir = outputDir ?? workspace
 
       fs.writeFileSync(path.join(dir, 'one'), '1')
       fs.writeFileSync(path.join(dir, 'two'), '2')
+
+      return Promise.resolve()
     })
 
     await expect(
-      fetchToOutput({url: 'https://github.com/o/r/tree/main/x', output: 'out'}, workspace)
+      fetchToOutput(
+        {url: 'https://github.com/o/r/tree/main/x', output: 'out'},
+        workspace
+      )
     ).rejects.toThrow(/exactly one downloaded entry/)
   })
 
@@ -162,7 +174,10 @@ describe('fetchToOutput', () => {
 
     mockedGoGitIt.mockRejectedValueOnce(new Error('boom'))
     await expect(
-      fetchToOutput({url: 'https://github.com/o/r/tree/main/y', output: 'out2'}, workspace)
+      fetchToOutput(
+        {url: 'https://github.com/o/r/tree/main/y', output: 'out2'},
+        workspace
+      )
     ).rejects.toThrow('boom')
 
     const leftovers = fs

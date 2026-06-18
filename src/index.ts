@@ -1,4 +1,3 @@
-import * as process from 'process'
 import * as fs from 'fs'
 import * as path from 'path'
 
@@ -20,6 +19,8 @@ function moveSync (source: string, destination: string): void {
     fs.renameSync(source, destination)
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === 'EXDEV') {
+      // cpSync is available on the action's Node 20 runtime.
+      // eslint-disable-next-line node/no-unsupported-features/node-builtins
       fs.cpSync(source, destination, {recursive: true})
       fs.rmSync(source, {recursive: true, force: true})
 
@@ -105,7 +106,7 @@ export async function run (): Promise<void> {
   }
 }
 
-// Execute when invoked as the action entrypoint, but not when imported by tests.
+// Execute as the action entrypoint, but not when imported by tests.
 if (process.env.NODE_ENV !== 'test') {
   run()
 }
