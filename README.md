@@ -87,6 +87,15 @@ This design gives you full control of where each resource goes, which is especia
 - **Public repositories only.** Content is fetched over unauthenticated HTTPS, so private or internal repositories are not supported.
 - **Git is required** on the runner (present by default on GitHub-hosted runners).
 
+## Related projects
+
+* [pintor](https://github.com/cezaraugusto/pintor)
+* [log-md](https://github.com/cezaraugusto/log-md)
+* [mklicense](https://github.com/cezaraugusto/mklicense)
+* [prefers-yarn](https://github.com/cezaraugusto/prefers-yarn)
+* [go-git-it](https://github.com/cezaraugusto/go-git-it)
+* [isolated-deps](https://github.com/cezaraugusto/isolated-deps)
+
 ## License
 
 MIT (c) Cezar Augusto.
