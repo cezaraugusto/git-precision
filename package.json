@@ -30,7 +30,7 @@
     "go-git-it": "^5.1.5"
   },
   "devDependencies": {
-    "@actions/core": "^1.11.1",
+    "@actions/core": "^3.0.1",
     "@rslib/core": "^0.9.2",
     "@types/node": "^22.15.30",
     "@vitest/coverage-v8": "^3.1.3",
