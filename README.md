@@ -12,7 +12,7 @@ Fetch just the part of a GitHub repository you need, without cloning the whole t
 - Fetch shared configs, templates, or workflows during CI
 - Pull specific folders from monorepos to reuse in other workflows
 - Extract starter files or framework examples at runtime
-- Use a lightweight alternative to cloning when you only need a specific folder or file
+- Fetch a single folder or file instead of cloning the whole repository
 
 ## Get started immediately
 
