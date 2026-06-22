@@ -5,8 +5,29 @@ import * as path from 'path'
 
 import {describe, it, expect, vi, beforeEach, afterEach} from 'vitest'
 import goGitIt from 'go-git-it'
+import * as core from '@actions/core'
 
-import {fetchToOutput} from './src/index'
+import {fetchToOutput, run} from './src/index'
+
+// Mock `fs` so `renameSync` can be overridden per-test (to simulate an EXDEV
+// cross-filesystem failure) while every other call delegates to the real
+// implementation. ESM forbids spying on named exports directly.
+vi.mock('fs', async (importActual) => {
+  const actual = (await importActual()) as typeof fs
+
+  return {...actual, renameSync: vi.fn(actual.renameSync)}
+})
+
+// Mock @actions/core so the action wrapper can be exercised without a real
+// GitHub Actions runtime.
+vi.mock('@actions/core', () => ({
+  getInput: vi.fn(),
+  setOutput: vi.fn(),
+  setFailed: vi.fn(),
+  info: vi.fn()
+}))
+
+const mockedCore = vi.mocked(core)
 
 // Mock go-git-it so tests are deterministic and offline. The mock reproduces
 // go-git-it's contract: it writes content as `<outputDir>/<basename(target)>`.
@@ -185,5 +206,131 @@ describe('fetchToOutput', () => {
       .filter((name) => name.startsWith('.git-precision-'))
 
     expect(leftovers).toEqual([])
+  })
+
+  it('falls back to copy + remove when rename crosses filesystems (EXDEV)', async () => {
+    stubDownload('folder', {'a.ts': 'A', 'b.ts': 'B'})
+
+    // Force the cross-device path: the first rename (temp entry → destination)
+    // raises EXDEV, so moveSync must copy then remove instead.
+    const exdev = Object.assign(new Error('cross-device link'), {code: 'EXDEV'})
+
+    vi.mocked(fs.renameSync).mockImplementationOnce(() => {
+      throw exdev
+    })
+
+    const resolved = await fetchToOutput(
+      {url: 'https://github.com/o/r/tree/main/src/utils', output: 'out'},
+      workspace
+    )
+
+    expect(resolved).toBe(path.join(workspace, 'out'))
+    expect(fs.readFileSync(path.join(workspace, 'out/a.ts'), 'utf8')).toBe('A')
+    expect(fs.readFileSync(path.join(workspace, 'out/b.ts'), 'utf8')).toBe('B')
+    // The temp entry was removed after the copy, leaving no residue.
+    const leftovers = fs
+      .readdirSync(workspace)
+      .filter((name) => name.startsWith('.git-precision-'))
+
+    expect(leftovers).toEqual([])
+  })
+
+  it('rethrows non-EXDEV rename failures unchanged', async () => {
+    stubDownload('folder', {'a.ts': 'A'})
+
+    const eperm = Object.assign(new Error('operation not permitted'), {
+      code: 'EPERM'
+    })
+
+    vi.mocked(fs.renameSync).mockImplementationOnce(() => {
+      throw eperm
+    })
+
+    await expect(
+      fetchToOutput(
+        {url: 'https://github.com/o/r/tree/main/x', output: 'out'},
+        workspace
+      )
+    ).rejects.toThrow('operation not permitted')
+  })
+})
+
+describe('run (action entrypoint)', () => {
+  beforeEach(() => {
+    mockedCore.getInput.mockReset()
+    mockedCore.setOutput.mockReset()
+    mockedCore.setFailed.mockReset()
+    mockedCore.info.mockReset()
+    // run() resolves paths against process.cwd(); point that at the temp
+    // workspace so the download lands somewhere disposable.
+    vi.spyOn(process, 'cwd').mockReturnValue(workspace)
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it('reads inputs, fetches, and reports the resolved path as output', async () => {
+    stubDownload('folder', {'a.ts': 'A'})
+
+    const inputs: Record<string, string> = {
+      url: 'https://github.com/o/r/tree/main/x',
+      output: 'out',
+      text: 'downloading'
+    }
+
+    mockedCore.getInput.mockImplementation((name: string) => inputs[name] ?? '')
+
+    await run()
+
+    expect(mockedGoGitIt).toHaveBeenCalledWith(
+      'https://github.com/o/r/tree/main/x',
+      expect.any(String),
+      'downloading'
+    )
+    expect(mockedCore.setOutput).toHaveBeenCalledWith(
+      'resolved-path',
+      path.join(workspace, 'out')
+    )
+    expect(mockedCore.setFailed).not.toHaveBeenCalled()
+  })
+
+  it('treats an empty text input as no custom message', async () => {
+    stubDownload('file', {'package.json': '{}'})
+
+    const inputs: Record<string, string> = {
+      url: 'https://github.com/o/r/blob/main/package.json',
+      output: '',
+      text: ''
+    }
+
+    mockedCore.getInput.mockImplementation((name: string) => inputs[name] ?? '')
+
+    await run()
+
+    // No output → default naming; empty text coerced to undefined.
+    expect(mockedGoGitIt).toHaveBeenCalledWith(
+      'https://github.com/o/r/blob/main/package.json',
+      workspace,
+      undefined
+    )
+    expect(mockedCore.setOutput).toHaveBeenCalledWith('resolved-path', workspace)
+  })
+
+  it('surfaces failures through core.setFailed instead of throwing', async () => {
+    const inputs: Record<string, string> = {
+      url: 'https://github.com/o/r',
+      output: '../escape',
+      text: ''
+    }
+
+    mockedCore.getInput.mockImplementation((name: string) => inputs[name] ?? '')
+
+    await run()
+
+    expect(mockedCore.setFailed).toHaveBeenCalledWith(
+      expect.stringMatching(/Refusing to use output/)
+    )
+    expect(mockedCore.setOutput).not.toHaveBeenCalled()
   })
 })

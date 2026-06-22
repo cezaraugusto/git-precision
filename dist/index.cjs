@@ -20112,7 +20112,7 @@ var __webpack_exports__ = {};
                 output,
                 text
             });
-            core_info(`✅ Fetched: ${url} → ${output || resolved}`);
+            core_info(`Fetched: ${url} → ${output || resolved}`);
             setOutput('resolved-path', resolved);
         } catch (error) {
             setFailed(error.message);

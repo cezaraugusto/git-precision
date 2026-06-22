@@ -6,6 +6,9 @@
 # Dist
 node_modules
 
+# Coverage
+coverage
+
 # IDE
 .vscode/*
 !.vscode/extensions.json
