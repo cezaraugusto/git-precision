@@ -7,16 +7,16 @@
 
 # git-precision [![Version][version-image]][version-url] [![workflow][action-image]][action-url]
 
-Built for CI pipelines and developers who need **just the right part** of a GitHub repository, without the overhead of cloning the entire thing. With `git-precision` you can:
+Fetch just the part of a GitHub repository you need, without cloning the whole thing. With `git-precision` you can:
 
-- Fetch **shared configs**, **templates**, or **workflows** during CI
-- Pull specific **folders from monorepos** to reuse in other workflows
-- Extract **starter files** or **framework examples** at runtime
-- Lightweight alternative to cloning when you only need a specific folder/file
+- Fetch shared configs, templates, or workflows during CI
+- Pull specific folders from monorepos to reuse in other workflows
+- Extract starter files or framework examples at runtime
+- Use a lightweight alternative to cloning when you only need a specific folder or file
 
 ## Get started immediately
 
-### 📄 Pull a single file
+### Pull a single file
 
 ```yaml
 - name: Download a file from a GitHub repository
@@ -26,7 +26,7 @@ Built for CI pipelines and developers who need **just the right part** of a GitH
     output: .github/workflows/deploy.yml
 ```
 
-### 🧱 Pull a folder
+### Pull a folder
 
 ```yaml
 - name: Download a subfolder from a GitHub repository
@@ -36,7 +36,7 @@ Built for CI pipelines and developers who need **just the right part** of a GitH
     output: ./templates/react
 ```
 
-### 📦 Pull the whole repo
+### Pull the whole repo
 
 ```yaml
 - name: Download full GitHub repository
@@ -78,9 +78,9 @@ The `output` input determines the **exact path** where the downloaded file or fo
 | `https://github.com/user/repo/tree/main/folder/123`                    | `./folder/123`             | The contents of the folder       |
 | `https://github.com/user/repo`                                               | `./repo`             | The full repo |
 
-This design gives you full control of where each resource goes, which is especially useful in CI pipelines.
+This design gives you full control of where each resource goes.
 
-> **Note:** If the `output` path already exists, it will be overwritten. The `output` must resolve to a path **inside** the workspace; values that resolve to the workspace root (`.`) or escape it (`../`) are rejected to avoid destructive deletes.
+If the `output` path already exists, it will be overwritten. The `output` must resolve to a path **inside** the workspace; values that resolve to the workspace root (`.`) or escape it (`../`) are rejected to avoid destructive deletes.
 
 ## Limitations
 

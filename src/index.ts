@@ -99,7 +99,7 @@ export async function run (): Promise<void> {
 
     const resolved = await fetchToOutput({url, output, text})
 
-    core.info(`✅ Fetched: ${url} → ${output || resolved}`)
+    core.info(`Fetched: ${url} → ${output || resolved}`)
     core.setOutput('resolved-path', resolved)
   } catch (error) {
     core.setFailed((error as Error).message)
