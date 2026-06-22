@@ -18,7 +18,7 @@ let workspace: string
 
 /**
  * Configure the go-git-it mock to materialize a file or folder, named after the
- * basename of the URL target, inside the directory it is handed , exactly what
+ * basename of the URL target, inside the directory it is handed, exactly what
  * the real implementation does.
  */
 function stubDownload (kind: 'file' | 'folder', files: Record<string, string>) {
