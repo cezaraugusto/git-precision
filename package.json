@@ -27,7 +27,7 @@
     "prepare": "rslib build"
   },
   "dependencies": {
-    "go-git-it": "^5.1.6"
+    "go-git-it": "^5.1.7"
   },
   "devDependencies": {
     "@actions/core": "^3.0.1",
